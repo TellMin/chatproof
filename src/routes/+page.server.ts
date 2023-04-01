@@ -1,34 +1,30 @@
 import type { Actions } from './$types';
-import { Configuration, OpenAIApi } from 'openai';
-import type { CreateChatCompletionRequest } from 'openai';
+import { chat } from '$lib/server/chat';
+import { parseJsonToChatCompletionRequestMessages } from '$lib/utils';
 
 export const actions: Actions = {
+	// send user message to chatbot
 	chat: async ({ request }) => {
+		// get user message
 		const formData = await request.formData();
-		const chat = await chatAI(formData.get('message')?.toString());
+		const message = formData.get('message')?.toString();
+
+		// get chat history
+		const chatHistory = parseJsonToChatCompletionRequestMessages(
+			formData.get('chatHistory')?.toString() ?? ''
+		);
+
+		// add user message to chat history
+		chatHistory.push({ role: 'user', content: message ?? '' });
+
+		// send chat history to chatbot
+		const respond = (await chat(chatHistory)) ?? '';
+
+		// add chatbot response to chat history
+		chatHistory.push({ role: 'assistant', content: respond });
+
 		return {
-			text: chat
+			chatHistory: chatHistory
 		};
 	}
-};
-
-const chatAI = async (chat: string | undefined) => {
-	if (!chat) return;
-	const configuration = new Configuration({
-		apiKey: import.meta.env.VITE_OPENAI_API_KEY
-	});
-	const openai = new OpenAIApi(configuration);
-
-	const request: CreateChatCompletionRequest = {
-		model: 'gpt-3.5-turbo',
-		messages: [
-			{ role: 'assistant', content: 'You are Developer.' },
-			{ role: 'assistant', content: 'And create powerful code.' },
-			{ role: 'user', content: chat }
-		]
-	};
-
-	const chatCompletion = await openai.createChatCompletion(request);
-
-	return chatCompletion.data.choices[0].message?.content;
 };
