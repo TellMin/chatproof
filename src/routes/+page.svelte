@@ -1,22 +1,35 @@
 <script lang="ts">
 	import type { ActionData } from './$types';
-
+	import ChatHistory from '$lib/ChatHistory.svelte';
+	import { ActAsDeveloper } from '$lib/prompts';
+	import type { ChatCompletionRequestMessage } from 'openai';
 	export let form: ActionData;
+
+	let chatHistory: Array<ChatCompletionRequestMessage> = ActAsDeveloper;
+
+	$: {
+		if (form?.chatHistory) {
+			chatHistory = form.chatHistory;
+		}
+	}
 </script>
 
-<div class="card p-4 text-surface-700-200-token">
+<div class="card p-8 text-surface-700-200-token">
 	<form method="POST" action="?/chat">
-		<label class="label pb-4">
-			<h1>Input</h1>
-			<textarea name="message" class="input" placeholder="Input" />
-		</label>
+		<div class="pb-4">
+			<ChatHistory chatHistory={chatHistory.filter((s) => s.role !== 'system')} />
+		</div>
+
+		<textarea name="message" class="input" placeholder="Input" />
 
 		<button type="submit" class="btn btn-sm variant-filled-tertiary">send</button>
-	</form>
 
-	<div class="card p-4 mt-4 variant-filled-surface">
-		{#if form}
-			{form.text}
-		{/if}
-	</div>
+		<input
+			hidden
+			name="chatHistory"
+			value={JSON.stringify(chatHistory)}
+			class="input"
+			placeholder="Input"
+		/>
+	</form>
 </div>
